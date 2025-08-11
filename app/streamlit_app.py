@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import pandas as pd
 import streamlit as st
 
-from .utils import apply_filters, detect_columns, read_csv
+from app.utils import apply_filters, detect_columns, read_csv
 
 DATA_FILES = ["bin-list-data-small.csv", "bin-list-data.csv"]
 
