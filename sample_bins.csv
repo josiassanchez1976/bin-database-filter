@@ -1,0 +1,61 @@
+bin,bank,brand,type,level,country,country_code,prepaid
+400000,BankD,Mastercard,credit,gold,Mexico,CA,No
+400001,BankC,Mastercard,debit,platinum,United States,MX,Yes
+400002,BankC,Visa,credit,platinum,Canada,MX,Yes
+400003,BankC,Visa,credit,platinum,Canada,CA,Yes
+400004,BankC,Mastercard,debit,platinum,Mexico,US,No
+400005,BankD,Amex,debit,classic,Mexico,US,Yes
+400006,BankD,Amex,credit,platinum,Canada,CA,Yes
+400007,BankC,Amex,credit,classic,Mexico,US,Yes
+400008,BankB,Amex,debit,classic,United States,CA,No
+400009,BankA,Mastercard,debit,platinum,United States,MX,No
+400010,BankB,Amex,debit,gold,United States,MX,No
+400011,BankC,Amex,credit,gold,United States,US,Yes
+400012,BankA,Amex,debit,gold,United States,US,Yes
+400013,BankB,Visa,credit,platinum,Mexico,MX,No
+400014,BankC,Amex,credit,classic,Mexico,MX,No
+400015,BankC,Mastercard,debit,platinum,Mexico,MX,No
+400016,BankA,Mastercard,credit,gold,Mexico,MX,No
+400017,BankB,Visa,credit,platinum,Canada,US,Yes
+400018,BankC,Visa,debit,gold,United States,US,Yes
+400019,BankB,Visa,credit,classic,United States,MX,Yes
+400020,BankA,Mastercard,credit,gold,United States,US,Yes
+400021,BankB,Visa,credit,gold,United States,MX,Yes
+400022,BankA,Amex,debit,platinum,United States,CA,Yes
+400023,BankB,Visa,debit,gold,Canada,US,Yes
+400024,BankD,Visa,credit,platinum,Canada,US,No
+400025,BankC,Amex,debit,platinum,United States,MX,Yes
+400026,BankA,Amex,credit,classic,Canada,MX,No
+400027,BankA,Amex,debit,platinum,United States,US,No
+400028,BankD,Amex,debit,platinum,Canada,CA,No
+400029,BankB,Amex,credit,gold,Mexico,US,No
+400030,BankA,Amex,debit,classic,United States,CA,No
+400031,BankC,Amex,debit,platinum,Mexico,MX,Yes
+400032,BankC,Mastercard,debit,platinum,United States,US,Yes
+400033,BankC,Visa,credit,classic,Mexico,CA,No
+400034,BankD,Visa,debit,platinum,Mexico,CA,Yes
+400035,BankB,Mastercard,credit,gold,Mexico,US,No
+400036,BankD,Amex,credit,classic,Canada,CA,No
+400037,BankD,Visa,debit,classic,Mexico,MX,Yes
+400038,BankB,Visa,debit,platinum,Canada,CA,Yes
+400039,BankB,Visa,credit,platinum,Mexico,MX,Yes
+400040,BankB,Visa,credit,gold,Canada,MX,Yes
+400041,BankA,Mastercard,debit,platinum,United States,US,No
+400042,BankD,Visa,debit,classic,Mexico,MX,No
+400043,BankA,Visa,debit,classic,United States,US,Yes
+400044,BankC,Amex,debit,gold,Mexico,US,No
+400045,BankD,Amex,debit,gold,Mexico,US,Yes
+400046,BankD,Amex,debit,classic,United States,US,No
+400047,BankC,Mastercard,debit,platinum,United States,CA,Yes
+400048,BankA,Mastercard,credit,classic,Mexico,CA,No
+400049,BankD,Amex,credit,gold,United States,CA,Yes
+400050,BankA,Mastercard,credit,platinum,Mexico,US,No
+400051,BankD,Mastercard,debit,gold,United States,US,No
+400052,BankD,Mastercard,debit,classic,Canada,US,No
+400053,BankD,Visa,debit,gold,Mexico,MX,Yes
+400054,BankB,Amex,debit,platinum,United States,US,Yes
+400055,BankB,Amex,credit,classic,Canada,US,Yes
+400056,BankD,Amex,debit,gold,Canada,MX,Yes
+400057,BankD,Visa,debit,classic,Canada,MX,Yes
+400058,BankD,Visa,debit,classic,United States,MX,Yes
+400059,BankD,Amex,credit,classic,Canada,CA,No
