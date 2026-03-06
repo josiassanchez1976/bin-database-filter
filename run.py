@@ -37,10 +37,11 @@ run([sys.executable, "-m", "pip", "install", "-r", str(ROOT / "app" / "requireme
 step("2/3  Construyendo interfaz web...")
 npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
 
-if not DIST_DIR.exists():
+if not (WEB_DIR / "node_modules").exists():
     print("  Instalando paquetes npm (solo la primera vez)...")
     run([npm_cmd, "install"], cwd=WEB_DIR)
 
+print("  Reconstruyendo frontend con los últimos cambios...")
 run([npm_cmd, "run", "build"], cwd=WEB_DIR)
 
 # ── 3. Iniciar servidor y abrir navegador ─────────────
