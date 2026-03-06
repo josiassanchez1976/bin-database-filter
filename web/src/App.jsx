@@ -12,27 +12,57 @@ function useDebounce(value, delay) {
   return debounced;
 }
 
-// ----- MultiSelect as checkboxes -----
+// ----- MultiSelect as searchable checkboxes -----
 function MultiCheck({ label, options, value, onChange }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const selected = value || [];
+
   const toggle = (opt) =>
     onChange(selected.includes(opt) ? selected.filter(x => x !== opt) : [...selected, opt]);
 
+  const filtered = options.filter(o =>
+    String(o).toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectAll = () => onChange([...new Set([...selected, ...filtered])]);
+  const clearAll = () => onChange(selected.filter(s => !filtered.includes(s)));
+
   return (
     <div className="filter-group">
-      <button className="multicheck-toggle" onClick={() => setOpen(o => !o)}>
+      <button className="multicheck-toggle" onClick={() => { setOpen(o => !o); setSearch(''); }}>
         {label} {selected.length > 0 && <span className="badge">{selected.length}</span>}
         <span className="arrow">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="multicheck-list">
-          {options.map(opt => (
-            <label key={opt} className="multicheck-item">
-              <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} />
-              {opt}
-            </label>
-          ))}
+          <div className="multicheck-search-row">
+            <input
+              className="multicheck-search"
+              placeholder="Buscar..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              autoFocus
+            />
+          </div>
+          <div className="multicheck-actions">
+            <button className="link-btn" onClick={selectAll}>Seleccionar todos</button>
+            <span style={{ color: '#d1d5db' }}>|</span>
+            <button className="link-btn" onClick={clearAll}>Limpiar</button>
+            <span className="multicheck-count">{filtered.length} opciones</span>
+          </div>
+          <div className="multicheck-items">
+            {filtered.length === 0
+              ? <div style={{ padding: '0.4rem', color: '#9ca3af', fontSize: '0.82rem' }}>Sin resultados</div>
+              : filtered.map(opt => (
+                <label key={opt} className="multicheck-item">
+                  <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} />
+                  {opt}
+                </label>
+              ))
+            }
+          </div>
         </div>
       )}
     </div>
@@ -224,8 +254,20 @@ export default function App() {
         .arrow { margin-left: auto; font-size: 0.7rem; color: #9ca3af; }
         .multicheck-list {
           border: 1px solid #e5e7eb; border-radius: 5px; background: #fff;
-          max-height: 180px; overflow-y: auto; padding: 0.25rem;
+          display: flex; flex-direction: column;
         }
+        .multicheck-search-row { padding: 0.35rem 0.4rem; border-bottom: 1px solid #f3f4f6; }
+        .multicheck-search {
+          width: 100%; padding: 0.3rem 0.5rem; border: 1px solid #d1d5db;
+          border-radius: 4px; font-size: 0.82rem; outline: none;
+        }
+        .multicheck-search:focus { border-color: #4f46e5; }
+        .multicheck-actions {
+          display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.5rem;
+          border-bottom: 1px solid #f3f4f6; font-size: 0.78rem;
+        }
+        .multicheck-count { margin-left: auto; color: #9ca3af; font-size: 0.75rem; }
+        .multicheck-items { max-height: 160px; overflow-y: auto; padding: 0.2rem; }
         .multicheck-item {
           display: flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.4rem;
           font-size: 0.85rem; cursor: pointer; border-radius: 3px;
