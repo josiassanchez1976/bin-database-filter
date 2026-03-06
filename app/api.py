@@ -16,7 +16,10 @@ from .utils import apply_filters, detect_columns, read_csv
 DATA_FILES = ["bin-list-data-small.csv", "bin-list-data.csv"]
 
 # Path to the built React frontend
-WEB_DIST = Path(__file__).parent.parent / "web" / "dist"
+# When running as a PyInstaller executable, WEB_DIST is set via environment variable
+import os as _os
+_web_dist_env = _os.environ.get("WEB_DIST")
+WEB_DIST = Path(_web_dist_env) if _web_dist_env else Path(__file__).parent.parent / "web" / "dist"
 
 app = FastAPI(title="BIN Filter API")
 app.add_middleware(
