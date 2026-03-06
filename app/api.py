@@ -6,21 +6,25 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .utils import apply_filters, detect_columns, read_csv
 
 # possible default data files in order of preference
 DATA_FILES = ["bin-list-data-small.csv", "bin-list-data.csv"]
 
+# Path to the built React frontend
+WEB_DIST = Path(__file__).parent.parent / "web" / "dist"
+
 app = FastAPI(title="BIN Filter API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"]
-    ,allow_headers=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -189,3 +193,12 @@ async def bins_export(
         filtered = filtered[columns]
     csv_bytes = filtered.to_csv(index=False).encode("utf-8")
     return StreamingResponse(io.BytesIO(csv_bytes), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=bins_filtrados.csv"})
+
+
+# Serve React build — must be registered AFTER all API routes
+if WEB_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        return FileResponse(WEB_DIST / "index.html")
