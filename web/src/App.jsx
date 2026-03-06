@@ -2,16 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_PAGE_SIZE = 50;
 
-// ----- Debounce hook -----
-function useDebounce(value, delay) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
-
 // ----- MultiSelect as searchable checkboxes -----
 function MultiCheck({ label, options, value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -71,9 +61,13 @@ function MultiCheck({ label, options, value, onChange }) {
 
 // ----- Main App -----
 export default function App() {
-  const [options, setOptions] = useState({});
+  const [baseOptions, setBaseOptions] = useState({});
+  const [dynOptions, setDynOptions] = useState({});
   const [mapping, setMapping] = useState({});
   const [columns, setColumns] = useState([]);
+  // draft = current UI selections (not yet applied)
+  const [draft, setDraft] = useState({});
+  // filters = what was last searched (triggers /bins fetch)
   const [filters, setFilters] = useState({ page: 1, page_size: DEFAULT_PAGE_SIZE });
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
@@ -86,20 +80,14 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Inputs with debounce
   const [prefixInput, setPrefixInput] = useState('');
   const [textInput, setTextInput] = useState('');
-  const debouncedPrefix = useDebounce(prefixInput, 300);
-  const debouncedText = useDebounce(textInput, 300);
 
-  // Sync debounced values into filters
-  useEffect(() => {
-    setFilters(f => ({ ...f, prefix: debouncedPrefix, page: 1 }));
-  }, [debouncedPrefix]);
-
-  useEffect(() => {
-    setFilters(f => ({ ...f, text: debouncedText, page: 1 }));
-  }, [debouncedText]);
+  // Returns current available options for a dimension (dynamic if filtered, else base)
+  const getOptions = (dim) => {
+    if (dynOptions[dim] !== undefined) return dynOptions[dim];
+    return baseOptions[dim] || [];
+  };
 
   const loadMeta = useCallback(() => {
     return fetch('/meta')
@@ -108,7 +96,7 @@ export default function App() {
         return r.json();
       })
       .then(res => {
-        setOptions(res.options);
+        setBaseOptions(res.options);
         setMapping(res.mapping);
         setColumns(res.columns);
         setError(null);
@@ -117,6 +105,30 @@ export default function App() {
   }, []);
 
   useEffect(() => { loadMeta(); }, [loadMeta]);
+
+  // When draft filters change, fetch dynamic options so other filters only show available values
+  useEffect(() => {
+    const filterKeys = ['include_bank', 'include_brand', 'include_type', 'include_level', 'include_country', 'include_country_code'];
+    const hasAnyFilter = filterKeys.some(k => draft[k]?.length > 0) || prefixInput || draft.prepaid;
+
+    if (!hasAnyFilter) {
+      setDynOptions({});
+      return;
+    }
+
+    const params = new URLSearchParams();
+    filterKeys.forEach(k => {
+      if (draft[k]?.length) draft[k].forEach(v => params.append(k, v));
+    });
+    if (prefixInput) params.append('prefix', prefixInput);
+    if (draft.prepaid) params.append('prepaid', draft.prepaid);
+
+    fetch('/options?' + params.toString())
+      .then(r => r.json())
+      .then(res => setDynOptions(res.options || {}))
+      .catch(() => {});
+  }, [draft.include_bank, draft.include_brand, draft.include_type, draft.include_level,
+      draft.include_country, draft.include_country_code, prefixInput, draft.prepaid]);
 
   const buildParams = useCallback((f = filters) => {
     const params = new URLSearchParams();
@@ -127,6 +139,7 @@ export default function App() {
     return params;
   }, [filters]);
 
+  // Only fetch data when applied filters change (triggered by "Buscar" button or pagination)
   useEffect(() => {
     const params = buildParams();
     setLoading(true);
@@ -144,11 +157,24 @@ export default function App() {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const updateFilter = (k, v) => setFilters(f => ({ ...f, [k]: v, page: 1 }));
+  const updateDraft = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+
+  const handleSearch = () => {
+    setFilters({
+      ...draft,
+      prefix: prefixInput || undefined,
+      text: textInput || undefined,
+      page: 1,
+      page_size: filters.page_size || DEFAULT_PAGE_SIZE,
+    });
+  };
+
   const resetFilters = () => {
-    setFilters({ page: 1, page_size: DEFAULT_PAGE_SIZE });
+    setDraft({});
+    setDynOptions({});
     setPrefixInput('');
     setTextInput('');
+    setFilters({ page: 1, page_size: filters.page_size || DEFAULT_PAGE_SIZE });
   };
 
   const copyClipboard = () => {
@@ -226,6 +252,13 @@ export default function App() {
         .btn-secondary { background: #e5e7eb; color: #374151; }
         .btn-danger { background: #ef4444; color: #fff; }
         .btn-outline { background: transparent; border: 1px solid #d1d5db; color: #374151; }
+        .btn-search {
+          background: #16a34a; color: #fff; width: 100%;
+          padding: 0.55rem; font-size: 0.95rem; border-radius: 6px;
+          border: none; cursor: pointer; font-weight: 700; letter-spacing: 0.02em;
+          transition: opacity 0.15s;
+        }
+        .btn-search:hover { opacity: 0.88; }
         .badge {
           display: inline-block; background: #4f46e5; color: #fff;
           border-radius: 10px; padding: 0 6px; font-size: 0.75rem; margin-left: 4px;
@@ -296,6 +329,7 @@ export default function App() {
         .empty-msg { text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.95rem; }
         .page-size-select { padding: 0.3rem 0.5rem; border: 1px solid #d1d5db; border-radius: 5px; font-size: 0.82rem; }
         .link-btn { background: none; border: none; color: #4f46e5; cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: underline; padding: 0; }
+        .dyn-hint { font-size: 0.7rem; color: #16a34a; font-style: italic; padding: 0.1rem 0.2rem; }
       `}</style>
 
       <div className="app">
@@ -338,43 +372,46 @@ export default function App() {
                 value={textInput} onChange={e => setTextInput(e.target.value)} />
             </div>
 
-            {mapping.bank && options.bank && (
-              <MultiCheck label="Banco incluir" options={options.bank}
-                value={filters.include_bank} onChange={v => updateFilter('include_bank', v)} />
+            {mapping.bank && (
+              <MultiCheck label="Banco" options={getOptions('bank')}
+                value={draft.include_bank} onChange={v => updateDraft('include_bank', v)} />
             )}
-            {mapping.bank && options.bank && (
-              <MultiCheck label="Banco excluir" options={options.bank}
-                value={filters.exclude_bank} onChange={v => updateFilter('exclude_bank', v)} />
+
+            {mapping.brand && (
+              <>
+                <MultiCheck label="Marca" options={getOptions('brand')}
+                  value={draft.include_brand} onChange={v => updateDraft('include_brand', v)} />
+                {Object.keys(dynOptions).length > 0 && (draft.include_bank?.length > 0 || draft.include_brand?.length > 0) && (
+                  <div className="dyn-hint">Opciones filtradas por selección actual</div>
+                )}
+              </>
             )}
-            {mapping.brand && options.brand && (
-              <MultiCheck label="Marca" options={options.brand}
-                value={filters.include_brand} onChange={v => updateFilter('include_brand', v)} />
+
+            {mapping.type && (
+              <MultiCheck label="Tipo" options={getOptions('type')}
+                value={draft.include_type} onChange={v => updateDraft('include_type', v)} />
             )}
-            {mapping.type && options.type && (
-              <MultiCheck label="Tipo" options={options.type}
-                value={filters.include_type} onChange={v => updateFilter('include_type', v)} />
+
+            {mapping.level && (
+              <MultiCheck label="Nivel" options={getOptions('level')}
+                value={draft.include_level} onChange={v => updateDraft('include_level', v)} />
             )}
-            {mapping.level && options.level && (
-              <MultiCheck label="Nivel incluir" options={options.level}
-                value={filters.include_level} onChange={v => updateFilter('include_level', v)} />
+
+            {mapping.country && (
+              <MultiCheck label="País" options={getOptions('country')}
+                value={draft.include_country} onChange={v => updateDraft('include_country', v)} />
             )}
-            {mapping.level && options.level && (
-              <MultiCheck label="Nivel excluir" options={options.level}
-                value={filters.exclude_level} onChange={v => updateFilter('exclude_level', v)} />
+
+            {mapping.country_code && (
+              <MultiCheck label="Código ISO" options={getOptions('country_code')}
+                value={draft.include_country_code} onChange={v => updateDraft('include_country_code', v)} />
             )}
-            {mapping.country && options.country && (
-              <MultiCheck label="País" options={options.country}
-                value={filters.include_country} onChange={v => updateFilter('include_country', v)} />
-            )}
-            {mapping.country_code && options.country_code && (
-              <MultiCheck label="Código ISO" options={options.country_code}
-                value={filters.include_country_code} onChange={v => updateFilter('include_country_code', v)} />
-            )}
+
             {mapping.prepaid && (
               <div className="filter-group">
                 <label className="filter-label">Prepago</label>
-                <select className="filter-select" value={filters.prepaid || ''}
-                  onChange={e => updateFilter('prepaid', e.target.value)}>
+                <select className="filter-select" value={draft.prepaid || ''}
+                  onChange={e => updateDraft('prepaid', e.target.value)}>
                   <option value="">Cualquiera</option>
                   <option value="true">Sí</option>
                   <option value="false">No</option>
@@ -384,8 +421,8 @@ export default function App() {
 
             <div className="filter-group">
               <label className="multicheck-item">
-                <input type="checkbox" checked={filters.dedupe || false}
-                  onChange={e => updateFilter('dedupe', e.target.checked)} />
+                <input type="checkbox" checked={draft.dedupe || false}
+                  onChange={e => updateDraft('dedupe', e.target.checked)} />
                 Deduplicar BINs
               </label>
             </div>
@@ -394,15 +431,19 @@ export default function App() {
               <div className="filter-group">
                 <label className="filter-label">Columnas a mostrar</label>
                 <MultiCheck label="Seleccionar columnas" options={columns}
-                  value={filters.columns} onChange={v => updateFilter('columns', v)} />
+                  value={draft.columns} onChange={v => updateDraft('columns', v)} />
               </div>
             )}
 
+            <hr className="divider" />
+            <button className="btn-search" onClick={handleSearch}>
+              Buscar
+            </button>
+
             {activeFilters > 0 && (
-              <>
-                <hr className="divider" />
-                <button className="btn btn-danger" onClick={resetFilters}>Limpiar filtros ({activeFilters})</button>
-              </>
+              <button className="btn btn-danger" onClick={resetFilters}>
+                Limpiar filtros ({activeFilters})
+              </button>
             )}
           </div>
 
@@ -418,11 +459,9 @@ export default function App() {
                   {filters.prepaid && <span className="chip">Prepago: {filters.prepaid === 'true' ? 'Sí' : 'No'}</span>}
                   {filters.dedupe && <span className="chip">Deduplicado</span>}
                   {(filters.include_bank || []).map(v => <span key={v} className="chip">Banco: {v}</span>)}
-                  {(filters.exclude_bank || []).map(v => <span key={v} className="chip">¬Banco: {v}</span>)}
                   {(filters.include_brand || []).map(v => <span key={v} className="chip">Marca: {v}</span>)}
                   {(filters.include_type || []).map(v => <span key={v} className="chip">Tipo: {v}</span>)}
                   {(filters.include_level || []).map(v => <span key={v} className="chip">Nivel: {v}</span>)}
-                  {(filters.exclude_level || []).map(v => <span key={v} className="chip">¬Nivel: {v}</span>)}
                   {(filters.include_country || []).map(v => <span key={v} className="chip">País: {v}</span>)}
                   {(filters.include_country_code || []).map(v => <span key={v} className="chip">ISO: {v}</span>)}
                 </div>

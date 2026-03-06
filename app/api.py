@@ -92,6 +92,45 @@ async def set_mapping(new_mapping: Dict[str, Optional[str]]):
     return {"mapping": STORE.mapping}
 
 
+@app.get("/options")
+async def get_options(
+    include_bank: Optional[List[str]] = None,
+    include_brand: Optional[List[str]] = None,
+    include_type: Optional[List[str]] = None,
+    include_level: Optional[List[str]] = None,
+    include_country: Optional[List[str]] = None,
+    include_country_code: Optional[List[str]] = None,
+    prefix: Optional[str] = None,
+    prepaid: Optional[str] = None,
+):
+    """Return available filter options for the current partial filter selection."""
+    if STORE.df is None:
+        raise HTTPException(status_code=400, detail="No data loaded")
+    bool_prepaid = None
+    if prepaid is not None:
+        if prepaid.lower() in {"true", "1", "yes"}:
+            bool_prepaid = True
+        elif prepaid.lower() in {"false", "0", "no"}:
+            bool_prepaid = False
+    filtered = apply_filters(
+        STORE.df,
+        STORE.mapping,
+        prefix=prefix,
+        include_bank=include_bank,
+        include_brand=include_brand,
+        include_type=include_type,
+        include_level=include_level,
+        include_country=include_country,
+        include_country_code=include_country_code,
+        prepaid=bool_prepaid,
+    )
+    options: Dict[str, List[str]] = {}
+    for dim, col in STORE.mapping.items():
+        if col and col in filtered:
+            options[dim] = sorted(filtered[col].dropna().unique().tolist())
+    return {"options": options}
+
+
 @app.get("/bins")
 async def bins(
     prefix: Optional[str] = None,
