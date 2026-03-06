@@ -10,6 +10,20 @@ import pandas as pd
 # Encodings to try when reading CSV
 ENCODINGS = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
 
+# Column names for headerless BIN CSVs (positional format)
+HEADERLESS_BIN_COLUMNS = {
+    0: "bin",
+    1: "brand",
+    2: "type",
+    3: "level",
+    4: "bank",
+    5: "bank_phone",
+    6: "bank_url",
+    7: "country_code",
+    8: "country_code_3",
+    9: "country",
+}
+
 # Mapping of logical dimensions to possible column name synonyms
 COLUMN_SYNONYMS = {
     "bin": ["bin", "iin", "bin_number", "first6", "prefix"],
@@ -50,17 +64,34 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _is_headerless(df: pd.DataFrame) -> bool:
+    """Return True if the first column name looks like a BIN number (no header row)."""
+    return str(df.columns[0]).strip().lstrip('-').isdigit()
+
+
+def _assign_headerless_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Assign standard column names to a headerless BIN CSV based on position."""
+    n = len(df.columns)
+    df = df.copy()
+    df.columns = [HEADERLESS_BIN_COLUMNS.get(i, f"col_{i}") for i in range(n)]
+    return df
+
+
 def read_csv(path_or_buffer: io.BytesIO | str) -> Tuple[pd.DataFrame, str]:
     """Read CSV trying multiple encodings. Returns dataframe and detected encoding."""
     last_error: Optional[Exception] = None
     for enc in ENCODINGS:
         try:
             df = pd.read_csv(path_or_buffer, dtype="string", encoding=enc)
+            if _is_headerless(df):
+                if hasattr(path_or_buffer, "seek"):
+                    path_or_buffer.seek(0)
+                df = pd.read_csv(path_or_buffer, dtype="string", encoding=enc, header=None)
+                df = _assign_headerless_columns(df)
             return normalize_columns(df), enc
         except Exception as e:  # pragma: no cover - diagnostic only
             last_error = e
             if isinstance(path_or_buffer, (str, bytes, bytearray)):
-                # reopen for next attempt
                 continue
             else:
                 path_or_buffer.seek(0)
